@@ -1,0 +1,19 @@
+{
+  "name": "sistema_distribuicao_aulas-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.11",
+    "express": "^4.19.2",
+    "exceljs": "^4.4.0",
+    "pdfkit": "^0.13.0",
+    "lodash": "^4.17.21",
+    "multer": "^1.4.5-lts.1"
+  }
+}
