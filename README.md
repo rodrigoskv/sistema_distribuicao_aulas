@@ -4,6 +4,9 @@
 Este repositório contém um sistema completo para **planejamento e geração de horários escolares** (fundamental/anos iniciais e finais), composto por **Backend (Node.js + TypeORM + MySQL)** e **Frontend (React + Vite)**.
 
 O objetivo é **organizar as aulas por turma e turno**, considerando **cargas horárias semanais**, **disponibilidade de professores**, **janelas de tempo (timeslots)** e **regras básicas** (evitar choques, cumprir carga por disciplina, etc.).
+ 
+**VIDEO DO PROJETO**
+https://youtu.be/5b7P37c2lnc
 
 > Documentações específicas:  
 > • Backend: [`BACKEND-README.md`] (.backend/README.md)  
