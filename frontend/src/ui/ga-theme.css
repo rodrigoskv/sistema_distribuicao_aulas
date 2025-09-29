@@ -1,0 +1,138 @@
+/* Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+:root{
+  /* Paleta cinza baseada no seu SVG */
+  --ga-primary:#c9ced7;           /* cinza claro -> botões/realces */
+  --ga-primary-contrast:#0f131a;  /* texto nos botões primários */
+
+  --ga-bg:#0f131a;        /* plano de fundo da página (charcoal) */
+  --ga-bg-elev:#131923;   /* header / sidebar (levemente mais claro) */
+  --ga-bg-card:#151c26;   /* cards/painéis */
+  --ga-border:#232b36;    /* bordas */
+  --ga-text:#e6ebf2;      /* texto principal */
+  --ga-text-muted:#a3acb8;/* texto secundário */
+  --ga-shadow: 0 2px 12px rgba(0,0,0,.35);
+  --ga-hover: rgba(255,255,255,.05);
+}
+
+*{box-sizing:border-box}
+html, body, #root{height:100%}
+body{
+  margin:0; font-family:Roboto, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+  color:var(--ga-text); background:var(--ga-bg);
+}
+
+/* ===== App shell ===== */
+.ga-shell{display:grid; grid-template-columns:240px 1fr; min-height:100vh;}
+.ga-sidebar{
+  background:var(--ga-bg-elev); border-right:1px solid var(--ga-border);
+  padding:12px 8px; position:sticky; top:0; height:100vh;
+}
+.ga-logo{display:flex; gap:8px; align-items:center; padding:10px 12px; font-weight:700; color:var(--ga-primary); letter-spacing:.2px}
+.ga-logo svg{width:22px; height:22px}
+.ga-nav{margin-top:8px; display:flex; flex-direction:column; gap:4px}
+.ga-nav a{
+  display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:8px;
+  color:var(--ga-text-muted); text-decoration:none; font-weight:500;
+}
+.ga-nav a svg{width:18px; height:18px}
+.ga-nav a:hover{background:var(--ga-hover); color:var(--ga-text)}
+.ga-nav a.active{background:rgba(201,206,215,.12); color:var(--ga-primary)}
+
+.ga-main{display:flex; flex-direction:column; min-width:0;}
+.ga-header{position:sticky; top:0; background:var(--ga-bg-elev); border-bottom:1px solid var(--ga-border); z-index:10;}
+.ga-header-inner{display:flex; align-items:center; gap:12px; padding:10px 16px; justify-content:space-between;}
+.ga-header-title{font-weight:600; color:var(--ga-text);}
+.ga-brand{width:28px; height:28px}
+
+.ga-content{padding:20px; display:flex; flex-direction:column; gap:16px;}
+
+/* ===== Cards ===== */
+.ga-card, .card{
+  background:var(--ga-bg-card); border:1px solid var(--ga-border);
+  border-radius:12px; box-shadow:var(--ga-shadow); padding:16px;
+}
+.ga-card h3, .ga-card h4{margin:0 0 10px 0}
+
+/* Grid util */
+.ga-grid{display:grid; gap:16px}
+@media (min-width: 900px){ .ga-grid.cols-3{grid-template-columns:repeat(3,1fr)} }
+
+/* ===== Buttons ===== */
+button, .ga-btn{
+  appearance:none; border:none; background:transparent; color:var(--ga-text);
+  padding:8px 12px; border-radius:8px; border:1px solid var(--ga-border); cursor:pointer
+}
+.ga-btn:hover{background:var(--ga-hover)}
+.ga-btn-primary{background:var(--ga-primary); color:var(--ga-primary-contrast); border-color:var(--ga-primary)}
+.ga-btn-primary:hover{filter:brightness(0.95)}
+.ga-btn-outline{background:transparent; border-color:var(--ga-primary); color:var(--ga-primary)}
+
+/* ===== Badges ===== */
+.ga-badge{
+  display:inline-flex; align-items:center; gap:6px; font-size:12px;
+  color:#d5dae2; background:#101722; border:1px solid var(--ga-border);
+  padding:2px 8px; border-radius:999px
+}
+
+/* ===== Tables ===== */
+.ga-table{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border:1px solid var(--ga-border); border-radius:10px; background:var(--ga-bg-card)}
+.ga-table thead th{background:#101722; color:#cbd5e1; text-align:left; font-weight:600; padding:10px 12px; border-bottom:1px solid var(--ga-border)}
+.ga-table tbody td{padding:10px 12px; border-bottom:1px solid #1a2332}
+.ga-table tbody tr:nth-child(odd){background:#111a26}
+
+/* ===== Floating label inputs (dark/gray) ===== */
+.ga-field{position:relative; display:block}
+.ga-field input, .ga-field select, .ga-field textarea{
+  width:100%; border:1px solid var(--ga-border); border-radius:8px; padding:18px 12px 8px 12px; outline:none; background:#101722; color:var(--ga-text);
+}
+.ga-field input:focus, .ga-field select:focus, .ga-field textarea:focus{
+  border-color:var(--ga-primary); box-shadow:0 0 0 3px rgba(201,206,215,.15)
+}
+.ga-field label{
+  position:absolute; left:12px; top:10px; color:var(--ga-text-muted); font-size:13px; transition:all .15s ease;
+  background:var(--ga-bg-card); padding:0 6px;
+}
+.ga-field input::placeholder{color:transparent}
+.ga-field input:focus + label,
+.ga-field input:not(:placeholder-shown) + label,
+.ga-field select:focus + label{ top:-8px; font-size:11px; color:#d9dde4 }
+
+/* Helpers */
+.row{display:flex; gap:8px; flex-wrap:wrap}
+
+/* ====== Overrides dos botões antigos (.primary etc.) em cinza ====== */
+button.primary, .primary {
+  background: var(--ga-primary) !important;
+  color: var(--ga-primary-contrast) !important;
+  border: 1px solid var(--ga-primary) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+}
+button.primary:hover, .primary:hover { filter: brightness(0.95) !important; }
+button.primary:disabled, .primary:disabled { opacity: .6; cursor: not-allowed; }
+
+/* Se existir '.secondary' antigo, deixa como outline cinza */
+button.secondary, .secondary {
+  background: transparent !important;
+  color: var(--ga-primary) !important;
+  border: 1px solid var(--ga-primary) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+}
+button.secondary:hover, .secondary:hover { background: var(--ga-hover) !important; }
+
+/* Botão do input file (para evitar o azul do navegador) */
+.ga-card input[type="file"]::file-selector-button {
+  background: var(--ga-bg-elev);
+  color: var(--ga-text);
+  border: 1px solid var(--ga-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+.ga-card input[type="file"]::file-selector-button:hover {
+  background: var(--ga-hover);
+}

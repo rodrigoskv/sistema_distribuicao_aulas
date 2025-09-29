@@ -1,0 +1,14 @@
+/* simple shadcn-ish */
+:root{--bg:#0b1020;--card:#141b34;--muted:#96a1c0;--text:#e8ecff;--accent:#5b8cff;--grid:#1e2748}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:var(--text)}
+.container{max-width:1120px;margin:0 auto;padding:24px}
+.card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+button,input,select{background:var(--grid);color:var(--text);border:1px solid #2a3565;border-radius:8px;padding:8px 12px}
+button.primary{background:var(--accent);border:none;color:white}
+nav a{color:var(--muted);margin-right:10px;text-decoration:none;padding:6px 10px;border-radius:8px}
+nav a.active{background:#222b50;color:var(--text)}
+.badge{font-size:11px;padding:2px 6px;border-radius:999px;background:#2b365f}
+.grid{display:grid;grid-template-columns:120px repeat(6,1fr);gap:2px}
+.cell{background:var(--grid);padding:8px;min-height:48px;border-radius:6px;font-size:12px}
+table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #26305b;padding:8px;text-align:left}

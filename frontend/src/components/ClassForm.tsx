@@ -1,366 +1,207 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { BookOpen, Plus, Edit, Trash2, Save, X, Search } from 'lucide-react';
-import { Class } from '@/types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { get, post, put, del } from '../lib/api';
 
-interface ClassFormProps {
-  classes: Class[];
-  setClasses: (classes: Class[]) => void;
-}
+type Shift = 'MATUTINO'|'VESPERTINO';
+type SchoolClass = { id:number; name:string; gradeYear:number; shift:Shift; hasContraturno:boolean };
+type Subject = { id:number; code:string; name:string; active?:boolean };
+type LoadRow = { subjectCode:string; hoursPerWeek:number };
 
-export default function ClassForm({ classes, setClasses }: ClassFormProps) {
-  const [currentClass, setCurrentClass] = useState<Partial<Class>>({
-    name: '',
-    grade: 1,
-    period: 'morning',
-    studentCount: 25,
-    contraTurnoDay: undefined
-  });
+const DEFAULT_1_5: Record<string, number> = { PORT:5, MAT:5, CIE:2, HIST:2, GEO:2, EF:2, ART:2, ING:2, ER:1, INF:1 };
+const DEFAULT_6_9: Record<string, number> = { PORT:5, MAT:5, CIE:3, HIST:2, GEO:2, EF:2, ART:2, ING:2, ESP:2, ER:1, INF:1 };
 
-  const [editingClass, setEditingClass] = useState<Class | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+export default function ClassForm(){
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [subs, setSubs] = useState<Subject[]>([]);
 
-  const grades = [
-    { value: 1, label: '1º Ano' },
-    { value: 2, label: '2º Ano' },
-    { value: 3, label: '3º Ano' },
-    { value: 4, label: '4º Ano' },
-    { value: 5, label: '5º Ano' },
-    { value: 6, label: '6º Ano' },
-    { value: 7, label: '7º Ano' },
-    { value: 8, label: '8º Ano' },
-    { value: 9, label: '9º Ano' }
-  ];
+  // criar turma
+  const [name,setName]=useState('');
+  const [gradeYear,setGrade]=useState<number>(1);
+  const [shift,setShift]=useState<Shift>('MATUTINO');
 
-  const periods = [
-    { value: 'morning', label: 'Matutino' },
-    { value: 'afternoon', label: 'Vespertino' }
-  ];
+  // editar turma
+  const [editing, setEditing] = useState<SchoolClass | null>(null);
+  const [eName,setEName]=useState('');
+  const [eGrade,setEGrade]=useState<number>(1);
+  const [eShift,setEShift]=useState<Shift>('MATUTINO');
 
-  const contraTurnoDays = [
-    { value: 0, label: 'Segunda-feira' },
-    { value: 1, label: 'Terça-feira' },
-    { value: 2, label: 'Quarta-feira' },
-    { value: 3, label: 'Quinta-feira' },
-    { value: 4, label: 'Sexta-feira' }
-  ];
+  // cargas por turma
+  const [selected, setSelected] = useState<SchoolClass | null>(null);
+  const [loads, setLoads] = useState<Record<string, number>>({}); // subjectCode -> hours
 
-  const handleSubmit = () => {
-    if (!currentClass.name || !currentClass.grade || !currentClass.period) {
-      alert('Preencha todos os campos obrigatórios');
-      return;
+  async function loadAll(){
+    const [cls, sj] = await Promise.all([get<SchoolClass[]>('/classes'), get<Subject[]>('/subjects')]);
+    setClasses(cls); setSubs(sj);
+
+    // se a turma selecionada ainda existir, recarrega cargas; senão, limpa seleção
+    if (selected && cls.some(c => c.id === selected.id)) {
+      const l = await get<LoadRow[]>(`/classes/${selected.id}/loads`);
+      setLoads(Object.fromEntries(l.map(x => [x.subjectCode.toUpperCase(), Number(x.hoursPerWeek||0)])));
+    } else {
+      setSelected(null);
+      setLoads({});
     }
+  }
+  useEffect(()=>{ loadAll(); },[]);
 
-    const newClass: Class = {
-      id: Date.now(),
-      name: currentClass.name!,
-      grade: currentClass.grade!,
-      period: currentClass.period! as 'morning' | 'afternoon',
-      studentCount: currentClass.studentCount || 25,
-      contraTurnoDay: currentClass.contraTurnoDay
-    };
+  useEffect(()=>{ (async()=>{
+    if (!selected) return;
+    const l = await get<LoadRow[]>(`/classes/${selected.id}/loads`);
+    setLoads(Object.fromEntries(l.map(x => [x.subjectCode.toUpperCase(), Number(x.hoursPerWeek||0)])));
+  })(); },[selected?.id]);
 
-    setClasses([...classes, newClass]);
-    setCurrentClass({
-      name: '',
-      grade: 1,
-      period: 'morning',
-      studentCount: 25,
-      contraTurnoDay: undefined
-    });
-  };
+  async function addClass(){
+    if (!name.trim()) return alert('Informe o nome da turma');
+    await post<SchoolClass>('/classes', { name: name.trim(), gradeYear, shift });
+    setName(''); setGrade(1); setShift('MATUTINO');
+    await loadAll();
+  }
 
-  const handleEditClass = (classItem: Class) => {
-    setEditingClass({ ...classItem });
-    setIsEditDialogOpen(true);
-  };
+  function openEdit(c: SchoolClass){
+    setEditing(c);
+    setEName(c.name);
+    setEGrade(c.gradeYear);
+    setEShift(c.shift);
+  }
+  async function saveEdit(){
+    if (!editing) return;
+    if (!eName.trim()) return alert('Informe o nome da turma');
+    await put<SchoolClass>(`/classes/${editing.id}`, { name: eName.trim(), gradeYear: eGrade, shift: eShift });
+    setEditing(null);
+    await loadAll();
+  }
 
-  const handleSaveEdit = () => {
-    if (!editingClass || !editingClass.name || !editingClass.grade || !editingClass.period) {
-      alert('Preencha todos os campos obrigatórios');
-      return;
-    }
+  // excluir turma (com opção de hard delete)
+  async function removeClass(c: SchoolClass){
+    const sure = window.confirm(`Excluir a turma "${c.name}"?`);
+    if (!sure) return;
 
-    const updatedClasses = classes.map(classItem =>
-      classItem.id === editingClass.id ? editingClass : classItem
+    const hard = window.confirm(
+      'Também deseja EXCLUIR as cargas semanais e os horários gerados desta turma?\n\nOK = excluir tudo\nCancelar = excluir apenas a turma'
     );
-    setClasses(updatedClasses);
-    setIsEditDialogOpen(false);
-    setEditingClass(null);
-  };
 
-  const handleCancelEdit = () => {
-    setIsEditDialogOpen(false);
-    setEditingClass(null);
-  };
+    if (selected?.id === c.id) setSelected(null);
+    if (editing?.id === c.id) setEditing(null);
 
-  const removeClass = (id: number) => {
-    if (confirm('Tem certeza que deseja remover esta turma?')) {
-      setClasses(classes.filter(c => c.id !== id));
-    }
-  };
+    await del<void>(`/classes/${c.id}${hard ? '?hard=true' : ''}`);
+    await loadAll();
+  }
 
-  const filteredClasses = classes.filter(classItem =>
-    classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    grades.find(g => g.value === classItem.grade)?.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    periods.find(p => p.value === classItem.period)?.label.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  function updateLoad(code:string, v:number){
+    setLoads(prev => ({ ...prev, [code]: Math.max(0, v|0) }));
+  }
 
-  const ClassFormFieldsInner = ({ 
-    classData, 
-    onChange, 
-    isEditing = false 
-  }: {
-    classData: Partial<Class>;
-    onChange: (field: keyof Class, value: string | number | undefined) => void;
-    isEditing?: boolean;
-  }) => (
-    <div className="space-y-6">
-      {/* Basic Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label className="text-gray-700 dark:text-gray-300">Nome da Turma</Label>
-          <Input
-            value={classData.name || ''}
-            onChange={(e) => onChange('name', e.target.value)}
-            placeholder="Ex: 5º A, 8º B"
-            className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-gray-700 dark:text-gray-300">Quantidade de Alunos</Label>
-          <Input
-            type="number"
-            min="1"
-            max="50"
-            value={classData.studentCount || 25}
-            onChange={(e) => onChange('studentCount', parseInt(e.target.value) || 25)}
-            className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-          />
-        </div>
-      </div>
+  async function saveLoads(){
+    if (!selected) return;
+    const arr: LoadRow[] = Object.entries(loads)
+      .map(([subjectCode, hoursPerWeek]) => ({ subjectCode, hoursPerWeek }))
+      .filter(x => x.hoursPerWeek > 0);
+    await put(`/classes/${selected.id}/loads`, { loads: arr });
+    const l = await get<LoadRow[]>(`/classes/${selected.id}/loads`);
+    setLoads(Object.fromEntries(l.map(x => [x.subjectCode.toUpperCase(), Number(x.hoursPerWeek||0)])));
+  }
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label className="text-gray-700 dark:text-gray-300">Ano Escolar</Label>
-          <Select
-            value={classData.grade?.toString()}
-            onValueChange={(value) => onChange('grade', parseInt(value))}
-          >
-            <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
-              <SelectValue placeholder="Selecione o ano" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              {grades.map(grade => (
-                <SelectItem key={grade.value} value={grade.value.toString()}>
-                  {grade.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-gray-700 dark:text-gray-300">Turno</Label>
-          <Select
-            value={classData.period}
-            onValueChange={(value) => onChange('period', value)}
-          >
-            <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
-              <SelectValue placeholder="Selecione o turno" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              {periods.map(period => (
-                <SelectItem key={period.value} value={period.value}>
-                  {period.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+  function suggest(){
+    if (!selected) return;
+    const tpl = selected.gradeYear >= 1 && selected.gradeYear <= 5 ? DEFAULT_1_5 : DEFAULT_6_9;
+    const map: Record<string, number> = {};
+    for (const s of subs) map[s.code.toUpperCase()] = tpl[s.code.toUpperCase()] ?? 0;
+    setLoads(map);
+  }
 
-      {/* Contra-turno for grades 6-9 */}
-      {classData.grade && classData.grade >= 6 && classData.grade <= 9 && (
-        <div className="space-y-2">
-          <Label className="text-gray-700 dark:text-gray-300">
-            Dia do Contra-turno (6º ao 9º ano)
-          </Label>
-          <Select
-            value={classData.contraTurnoDay?.toString()}
-            onValueChange={(value) => onChange('contraTurnoDay', value ? parseInt(value) : undefined)}
-          >
-            <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
-              <SelectValue placeholder="Selecione o dia do contra-turno" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <SelectItem value="">Nenhum</SelectItem>
-              {contraTurnoDays.map(day => (
-                <SelectItem key={day.value} value={day.value.toString()}>
-                  {day.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Contra-turno é usado para completar a carga horária das disciplinas
-          </p>
-        </div>
-      )}
-    </div>
-  );
+  const total = useMemo(()=>Object.values(loads).reduce((a,b)=>a+(Number(b)||0),0),[loads]);
 
-  const ClassFormFields = React.memo(ClassFormFieldsInner);
-
+  // preview de CT no editor (apenas visual; o backend recalcula oficialmente)
+  const ctPreview = (gy:number) => [6,7,8,9].includes(Number(gy));
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-            <BookOpen className="w-5 h-5" />
-            Cadastro de Turmas
-          </CardTitle>
-          <CardDescription className="text-gray-600 dark:text-gray-300">
-            Gerencie turmas, anos escolares e configurações de contra-turno
-          </CardDescription>
-        </CardHeader>
-      </Card>
+    <div className="card">
+      <h3>Turmas</h3>
 
-      {/* Add New Class Form */}
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardContent className="pt-6">
-          <ClassFormFields
-            classData={currentClass}
-            onChange={(field, value) => setCurrentClass({ ...currentClass, [field]: value })}
-          />
+      {/* Criar turma */}
+      <div className="row" style={{gap:8}}>
+        <input placeholder="Nome" value={name} onChange={e=>setName(e.target.value)} />
+        <input type="number" min={1} max={9} placeholder="Série (1–9)" value={gradeYear} onChange={e=>setGrade(Math.min(9, Math.max(1, Number(e.target.value)||1)))} />
+        <select value={shift} onChange={e=>setShift(e.target.value as Shift)}>
+          <option value="MATUTINO">Matutino</option>
+          <option value="VESPERTINO">Vespertino</option>
+        </select>
+        <button className="primary" onClick={addClass}>Adicionar</button>
+      </div>
 
-          <div className="mt-6">
-            <Button onClick={handleSubmit} className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 py-3">
-              <Plus className="w-4 h-4 mr-2" />
-              Cadastrar Turma
-            </Button>
+      {/* Lista */}
+      <table style={{marginTop:12, width:'100%'}}>
+        <thead><tr><th>Turma</th><th>Série</th><th>Turno</th><th>CT</th><th>Ações</th></tr></thead>
+        <tbody>
+          {classes.map(c=>(
+            <tr key={c.id}>
+              <td>{c.name}</td>
+              <td>{c.gradeYear}º</td>
+              <td>{c.shift}</td>
+              <td>{c.hasContraturno?'Sim':'Não'}</td>
+              <td style={{display:'flex', gap:8}}>
+                <button onClick={()=>openEdit(c)}>Editar</button>
+                <button onClick={()=>setSelected(c)}>Editar cargas</button>
+                {/* Excluir com o MESMO estilo dos outros botões */}
+                <button onClick={()=>removeClass(c)} title="Excluir turma">Excluir</button>
+              </td>
+            </tr>
+          ))}
+          {classes.length===0 && <tr><td colSpan={5}>Nenhuma turma.</td></tr>}
+        </tbody>
+      </table>
+
+      {/* Editor de turma */}
+      {editing && (
+        <div className="card" style={{marginTop:16}}>
+          <h4>Editar turma</h4>
+          <div className="row" style={{gap:8, flexWrap:'wrap'}}>
+            <input placeholder="Nome" value={eName} onChange={e=>setEName(e.target.value)} />
+            <input type="number" min={1} max={9} placeholder="Série (1–9)" value={eGrade} onChange={e=>setEGrade(Math.min(9, Math.max(1, Number(e.target.value)||1)))} />
+            <select value={eShift} onChange={e=>setEShift(e.target.value as Shift)}>
+              <option value="MATUTINO">Matutino</option>
+              <option value="VESPERTINO">Vespertino</option>
+            </select>
+            <div style={{alignSelf:'center', color:'#94a3b8'}}>CT (automático): <b>{ctPreview(eGrade) ? 'Sim' : 'Não'}</b></div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Classes List */}
-      {classes.length > 0 && (
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-gray-900 dark:text-white">Turmas Cadastradas</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-300">
-                  {classes.length} turma(s) cadastrada(s)
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Buscar turma..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-64 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                  />
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {filteredClasses.map(classItem => (
-              <div key={classItem.id} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white">{classItem.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                        {grades.find(g => g.value === classItem.grade)?.label}
-                      </Badge>
-                      <Badge className={classItem.period === 'morning' 
-                        ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
-                        : 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
-                      }>
-                        {periods.find(p => p.value === classItem.period)?.label}
-                      </Badge>
-                      {classItem.contraTurnoDay !== undefined && (
-                        <Badge className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
-                          Contra-turno: {contraTurnoDays.find(d => d.value === classItem.contraTurnoDay)?.label}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditClass(classItem)}
-                      className="border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeClass(classItem.id)}
-                      className="border-gray-300 dark:border-gray-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  <span>{classItem.studentCount} alunos</span>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+          <div className="row" style={{gap:8, marginTop:10}}>
+            <button className="primary" onClick={saveEdit}>Salvar</button>
+            <button onClick={()=>setEditing(null)}>Cancelar</button>
+          </div>
+        </div>
       )}
 
-      {/* Edit Class Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-gray-900 dark:text-white">Editar Turma</DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-300">
-              Modifique as informações da turma conforme necessário
-            </DialogDescription>
-          </DialogHeader>
-          
-          {editingClass && (
-            <div className="space-y-6">
-              <ClassFormFields
-                classData={editingClass}
-                onChange={(field, value) => setEditingClass({ ...editingClass, [field]: value })}
-                isEditing={true}
-              />
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-4">
-                <Button onClick={handleSaveEdit} className="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar Alterações
-                </Button>
-                <Button onClick={handleCancelEdit} variant="outline" className="border-gray-300 dark:border-gray-600">
-                  <X className="w-4 h-4 mr-2" />
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Editor de cargas */}
+      {selected && (
+        <div className="card" style={{marginTop:16}}>
+          <h4>Cargas semanais — {selected.name} ({selected.gradeYear}º — {selected.shift})</h4>
+          <div className="row" style={{gap:8, flexWrap:'wrap'}}>
+            <button onClick={suggest}>Sugerir cargas</button>
+            <span><b>Total:</b> {total} aulas/semana</span>
+          </div>
+          <table style={{marginTop:10, width:'100%'}}>
+            <thead><tr><th>Matéria</th><th>Código</th><th>Aulas/semana</th></tr></thead>
+            <tbody>
+              {subs.map(s=>{
+                const code = s.code.toUpperCase();
+                const v = loads[code] ?? 0;
+                return (
+                  <tr key={s.id}>
+                    <td>{s.name}</td>
+                    <td>{code}</td>
+                    <td>
+                      <input type="number" min={0} value={v} onChange={e=>updateLoad(code, Number(e.target.value)||0)} style={{width:90}} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div className="row" style={{gap:8, marginTop:10}}>
+            <button className="primary" onClick={saveLoads}>Salvar cargas</button>
+            <button onClick={()=>setSelected(null)}>Fechar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
