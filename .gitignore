@@ -1,0 +1,56 @@
+# ---- Root .gitignore for School Timetabling (backend + frontend) ----
+# Keep lockfiles committed for reproducible installs
+# (package-lock.json / pnpm-lock.yaml / yarn.lock) — DO NOT ignore them.
+
+# Node & package managers
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript artifacts
+*.tsbuildinfo
+
+# Builds & caches
+**/dist/
+**/build/
+**/.vite/
+**/.cache/
+**/.turbo/
+**/.parcel-cache/
+.eslintcache
+
+# Environment files (keep only examples under version control)
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Logs & pids
+logs/
+*.log
+*.log.*
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Editors & tooling
+.vscode/
+!.vscode/extensions.json  # keep recommended extensions if present
+
+# Database / uploads (local-only artifacts)
+backend/db.sqlite
+backend/uploads/
+uploads/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+~$*
