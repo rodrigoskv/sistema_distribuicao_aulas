@@ -1,19 +1,35 @@
 {
-  "name": "sistema_distribuicao_aulas-backend",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "src/server.js",
+  "name": "school-timetabling-backend",
+  "version": "2.0.0",
+  "private": true,
   "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "db:show": "npm run build && typeorm migration:show -d dist/db/data-source.js",
+    "db:run": "npm run build && typeorm migration:run  -d dist/db/data-source.js",
+    "db:rev": "npm run build && typeorm migration:revert -d dist/db/data-source.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "dayjs": "^1.11.11",
-    "express": "^4.19.2",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
-    "pdfkit": "^0.13.0",
-    "lodash": "^4.17.21",
-    "multer": "^1.4.5-lts.1"
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.11.3",
+    "pdfkit": "^0.15.0",
+    "reflect-metadata": "^0.2.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^24.5.2",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typeorm": "^0.3.27",
+    "typescript": "^5.5.4"
   }
 }
